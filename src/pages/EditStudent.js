@@ -1,19 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import Header from "../components/Header";
-import { useNavigate } from "react-router-dom";
 
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const AddStudent = () => {
-  const navigate=useNavigate()
+const EditStudent = () => {
+  const { studentId } = useParams();
+  const navigate = useNavigate();
+
+  const [willEditStudent, setWillEditStudent] = useState(null);
   const [studentNo, setStudentNo] = useState("");
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [studentClass, setStudentClass] = useState("");
   const [schoolName, setSchoolName] = useState("");
 
-  const handleSave = (event) => {
+  useEffect(() => {
+    axios
+      .get(`http://localhost:3004/students/${studentId}`)
+      .then((res) => {
+        console.log(res.data);
+        setWillEditStudent(res.data);
+        setStudentNo(res.data.studentNo);
+        setName(res.data.name);
+        setSurname(res.data.surname);
+        setStudentClass(res.data.studentClass);
+        setSchoolName(res.data.schoolName);
+      })
+      .catch((err) => {
+        console.log(err);
+        alert("İlgili öğrenci bilgilerini çekerken bir hata oluştu.");
+        navigate("/");
+      });
+  }, []);
+
+  const handleEdit = (event) => {
     event.preventDefault();
     //validation
     if (
@@ -23,34 +45,41 @@ const AddStudent = () => {
       studentClass === "" ||
       schoolName === ""
     ) {
-        alert("Bütün Alanları Doldurmak Zorunludur.")
-        return
+      alert("Bütün Alanları Doldurmak Zorunludur.");
+      return;
     }
-    
-    const newStudent={
-      id:String(new Date().getTime()),
-      name:name,
-      surname:surname,
-      studentNo:studentNo,
-      studentClass:studentClass,
-      schoolName:schoolName
-    }
-    axios.post("http://localhost:3004/students",newStudent)
-    .then(res=>{
-      navigate("/")
-    })
-    .catch(err=>{
-      console.log(err);
-      alert("Kayıt işleminde bir sorun oluştu.")
-    })
-
+    const updatedStudent = {
+      id: willEditStudent.id,
+      name: name,
+      surname: surname,
+      studentClass: studentClass,
+      schoolName: schoolName,
+      studentNo: studentNo,
+    };
+    axios
+      .put(
+        `http://localhost:3004/students/${willEditStudent.id}`,
+        updatedStudent
+      )
+      .then((res) => {
+        console.log(res);
+        navigate("/");
+      })
+      .catch((err) => {
+        console.log(err);
+        alert("Güncelleme esnasında bir hata oluştu");
+      });
   };
+
+  if (willEditStudent === null) {
+    return null;
+  }
 
   return (
     <div>
       <Header />
       <div className="container my-5">
-        <form onSubmit={handleSave}>
+        <form onSubmit={handleEdit}>
           <div className="mb-3">
             <label htmlFor="studentNo" className="form-label">
               Öğrenci Numarası
@@ -118,7 +147,7 @@ const AddStudent = () => {
           </div>
           <div className="d-flex justify-content-center my-5">
             <button type="submit" className="btn btn-outline-primary w-50">
-              Kaydet
+              Güncelle
             </button>
           </div>
         </form>
@@ -127,4 +156,4 @@ const AddStudent = () => {
   );
 };
 
-export default AddStudent;
+export default EditStudent;
